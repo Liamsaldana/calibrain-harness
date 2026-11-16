@@ -178,6 +178,14 @@ class SystemOneClient:
         )
 
 
+def make_client(spec: ModelSpec, session: aiohttp.ClientSession, **kwargs: Any):
+    """Client for any model in ctb.models, chosen by its protocol."""
+    if spec.protocol == "chat":
+        from .chat_client import ChatClassifierClient
+        return ChatClassifierClient(spec, session, **kwargs)
+    return SystemOneClient(spec, session, **kwargs)
+
+
 # Backwards-compatible names (the client predates multi-model support).
 ModelError = KairosError
 

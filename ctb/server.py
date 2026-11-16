@@ -410,6 +410,8 @@ def make_app(engine: Engine) -> web.Application:
             "kairos": {**key_hint(s.kairos_api_key), "base_url": s.kairos_base_url},
             "jev": {**key_hint(models_mod.MODELS["jev"].api_key), "base_url": models_mod.MODELS["jev"].base_url,
                     "model_id": models_mod.MODELS["jev"].model},
+            "deepseek": {**key_hint(models_mod.MODELS["deepseek"].api_key), "base_url": models_mod.MODELS["deepseek"].base_url,
+                         "model_id": models_mod.MODELS["deepseek"].model},
             "active_model": s.model_provider,
             "bybit": {"api_key": key_hint(s.bybit_api_key), "api_secret": key_hint(s.bybit_api_secret),
                       "connected": bool(engine.executor and not engine.executor.sync_error),
@@ -456,6 +458,18 @@ def make_app(engine: Engine) -> web.Application:
     @routes.post("/api/keys/jev/test")
     async def keys_jev_test(_: web.Request) -> web.Response:
         return j(await engine.test_model("jev"))
+
+    @routes.post("/api/keys/deepseek")
+    async def keys_deepseek(req: web.Request) -> web.Response:
+        body = await req.json()
+        key = str(body.get("api_key", "")).strip()
+        if not key:
+            return j({"error": "API key is required"}, 400)
+        return j(await engine.set_model_key("deepseek", key))
+
+    @routes.post("/api/keys/deepseek/test")
+    async def keys_deepseek_test(_: web.Request) -> web.Response:
+        return j(await engine.test_model("deepseek"))
 
     @routes.post("/api/model")
     async def set_model(req: web.Request) -> web.Response:

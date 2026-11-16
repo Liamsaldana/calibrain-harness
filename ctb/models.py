@@ -1,5 +1,9 @@
-"""Classification models the harness can drive. Each is a System One style API:
-POST {base_url}/v1/systemone with {"model", "state", "questions"} and typed answers back.
+"""Classification models the harness can drive. Two protocols:
+
+- "systemone": POST {base_url}/v1/systemone with {"model", "state", "questions"} and typed answers
+  back (Kairos, Jev).
+- "chat": an OpenAI-compatible chat-completions LLM (DeepSeek) prompted to return the same typed
+  answers as JSON; ctb.kairos.chat_client adapts it to the System One contract.
 
 Adding a model = adding a ModelSpec here (and its key in .env). Everything downstream (questions,
 validation, calibration, policy, evaluation) is model-agnostic; decisions, calibration weights and
@@ -28,6 +32,7 @@ class ModelSpec:
     supports_news_return: bool = False  # Kairos-only task_profile for headline forecasts
     key_url: str = ""
     key_hint: str = ""
+    protocol: str = "systemone"   # "systemone" | "chat"
 
     @property
     def api_key(self) -> str:
@@ -64,6 +69,18 @@ MODELS: dict[str, ModelSpec] = {
         retry_statuses=frozenset({429, 529, 502, 503, 504}), supports_news_return=False,
         key_url="https://console.typesafe.ai/keys",
         key_hint="Create a key in the TypeSafe console. Requests are billed per input token.",
+    ),
+    "deepseek": ModelSpec(
+        provider="deepseek", label="DeepSeek", vendor="DeepSeek",
+        key_env="DEEPSEEK_API_KEY", base_url_env="DEEPSEEK_BASE_URL", default_base_url="https://api.deepseek.com",
+        # a general LLM adapted to the question contract, not a trained classifier: judge it on the
+        # EVAL/VALID screens like any other model before trusting its probabilities
+        model_env="CTB_DEEPSEEK_MODEL", default_model="deepseek-chat",
+        max_questions=None, max_payload_bytes=512 * 1024,
+        retry_statuses=frozenset({429, 500, 502, 503, 504}), supports_news_return=False,
+        key_url="https://platform.deepseek.com/api_keys",
+        key_hint="Create a key on the DeepSeek platform. Requests are billed per token.",
+        protocol="chat",
     ),
 }
 
