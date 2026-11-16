@@ -142,6 +142,9 @@ function KeysModal() {
   const [jMsg, setJMsg] = useState<Msg>(null);
   const jevKey = useRef<HTMLInputElement>(null);
   const jevResult = (r: any) => setJMsg(r.ok ? { ok: true, text: `Jev reachable · ${r.latency_ms} ms · model ${r.model || "jev"}` } : { ok: false, text: r.error });
+  const [dMsg, setDMsg] = useState<Msg>(null);
+  const deepseekKey = useRef<HTMLInputElement>(null);
+  const deepseekResult = (r: any) => setDMsg(r.ok ? { ok: true, text: `DeepSeek reachable · ${r.latency_ms} ms · model ${r.model || "deepseek-chat"}` } : { ok: false, text: r.error });
   const Stat = ({ ok, txt }: { ok: boolean; txt: string }) => <span className={ok ? "up" : "dn"}>● {txt}</span>;
   return (
     <Dialog className="keys">
@@ -179,6 +182,22 @@ function KeysModal() {
           <span className="muted">A test uses 1 request from the hourly budget.</span>
         </div>
         <div className={`keymsg ${jMsg ? (jMsg.ok ? "ok" : "bad") : ""}`}>{jMsg?.text}</div>
+      </section>
+      <section className="keybox">
+        <div className="keyhead"><b>DEEPSEEK · CHAT API</b>{k && (k.deepseek?.set ? <Stat ok txt={`SET ${k.deepseek.hint} · ${k.deepseek.model_id}`} /> : <Stat ok={false} txt="NOT SET" />)}</div>
+        <p>Create a key at <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a> and add some credit. Billed per token. Answers go through the same strict validator; a malformed reply counts as an error, never as a prediction. Switch to DeepSeek with MODEL in the function-key bar.</p>
+        <label>API KEY<input ref={deepseekKey} type="password" autoComplete="off" spellCheck={false} placeholder="paste DeepSeek API key" /></label>
+        <div className="keyactions">
+          <button className="kbtn amber" type="button" disabled={!!busy} onClick={() => run("ds", async () => {
+            const key = deepseekKey.current!.value.trim();
+            if (!key) return setDMsg({ ok: false, text: "Paste a key first" });
+            try { deepseekResult(await post("/api/keys/deepseek", { api_key: key })); deepseekKey.current!.value = ""; } catch (e: any) { setDMsg({ ok: false, text: e.message }); }
+            load(); loadOverview();
+          })}>{busy === "ds" ? "WORKING…" : "SAVE & TEST"}</button>
+          <button className="kbtn" type="button" disabled={!!busy} onClick={() => run("dt", async () => { try { deepseekResult(await post("/api/keys/deepseek/test")); } catch (e: any) { setDMsg({ ok: false, text: e.message }); } })}>{busy === "dt" ? "WORKING…" : "TEST CURRENT KEY"}</button>
+          <span className="muted">A test uses 1 request from the hourly budget.</span>
+        </div>
+        <div className={`keymsg ${dMsg ? (dMsg.ok ? "ok" : "bad") : ""}`}>{dMsg?.text}</div>
       </section>
       <section className="keybox">
         <div className="keyhead"><b>BYBIT · TESTNET</b>{k && (k.bybit.api_key.set ? <Stat ok={k.bybit.connected} txt={`KEY ${k.bybit.api_key.hint} · ${k.bybit.connected ? "CONNECTED" : "ERROR"}`} /> : <Stat ok={false} txt="NOT SET" />)}</div>
